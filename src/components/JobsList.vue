@@ -5,12 +5,12 @@
 <section>
         <main class="bg-[#effafa] w-full px-1">
             <div>
-              <div id="filterContainer"
-                class="hidden mx-auto max-w-5xl bg-white py-4 px-6 relative -top-8 rounded-lg shadow-xl shadow-cyan-dark/10 justify-between items-center">
+              <div v-if="isAnyFilterSelected" id="filterContainer"
+                class="mx-auto max-w-5xl bg-white py-4 px-6 relative -top-8 rounded-lg shadow-xl shadow-cyan-dark/10 justify-between items-center">
                 <div id="tabletContainer" class="search__content flex flex-wrap gap-2">
                   <span> </span>
                 </div>
-                <button id="clearButton" class="font-bold text-darkCyan justify-items-end cursor-pointer hover:underline">Clear</button>
+                <button  id="clearButton" class="font-bold text-darkCyan justify-items-end cursor-pointer hover:underline">Clear</button>
               </div>
               <div class="flex text-right">
                 <button @click="handleLogout">Logout</button>
@@ -20,7 +20,7 @@
 
             <!-- Flex Container -->
             <div  class="flex flex-col space-y-12 md:space-y-6 container mx-auto max-w-5xl py-24" id="jobs">
-                <div v-for="job in jobsOnly" :key="job._id" class="flex bord flex-col md:flex-row justify-between items-start md:items-center bg-white px-4 pb-8 md:p-8 rounded-md shadow-xl shadow-darkCyan/10; border-l-[6px] border-l-darkCyan;" >
+                <div v-for="job in jobsOnly" :key="job._id" :class="{bord: job.featured } " class="flex flex-col md:flex-row justify-between items-start md:items-center bg-white px-4 pb-8 md:p-8 rounded-md shadow-xl shadow-darkCyan/10; border-l-[6px] border-l-darkCyan;" >
                     <div class="flex flex-col md:flex-row items-start md:items-center space-x-0 md:space-x-6 min-w-max">
                         <div class="circle w-16 h-16 rounded-full md:w-auto md:h-auto md:rounded-full relative -top-8 md:top-0">
                             <img :src="job.logo" class="rounded-full" :alt="job.company">
@@ -35,17 +35,17 @@
                               {{ job.position }}
                             </h4>
                             <ul class="flex list-disc list-inside space-x-4">
-                                <li class="text-darkGrayishCyan list-none">postedAt</li>
+                                <li class="text-darkGrayishCyan list-none">{{job.createdAt}}</li>
                                 <li class="text-darkGrayishCyan">{{ job.contract }}</li>
                                 <li class="text-darkGrayishCyan">{{ job.location }}</li>
                             </ul>
                         </div>
                     </div>
                     <div class="flex items-center flex-wrap gap-2 md:gap-4 my-4 md:my-0 border-t-[1px] md:border-t-0 pt-4 hover:text-white md:pt-0 md:ml-4 border-grayish-cyan-medium;">
-                      <span class="tag" v-for="role in job.roles" :key="role">{{ role }}</span>
-                      <span class="tag" v-for="level in job.levels" :key="level">{{ level }}</span>
-                      <span class="tag" v-for="language in job.languages" :key="language">{{ language }}</span>
-                      <span class="tag" v-for="tool in job.tools" :key="tool">{{ tool }}</span>
+                      <span class="tag" v-for="role in job.roles" :key="role" @click="toggleFilter('roles', role)">{{ role }}</span>
+                      <span class="tag" v-for="level in job.levels" :key="level" @click="toggleFilter('levels', level)">{{ level }}</span>
+                      <span class="tag" v-for="language in job.languages" :key="language" @click="toggleFilter('languages', language)">{{ language }}</span>
+                      <span class="tag" v-for="tool in job.tools" :key="tool" @click="toggleFilter('tools', tool)">{{ tool }}</span>
                     </div>
                   </div>
             </div>
@@ -56,16 +56,11 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import axios from "axios";
-import { authStore } from "@/store/auth";
+// import { authStore } from "@/store/auth";
+
 
 
 const jobsOnly = ref([]);
-
-const handleLogout = () => {
-      authStore().logout();
-      this.$router.push({ name: 'Login' });
-    }
-
 
 onMounted(async () => {
   try {
@@ -75,9 +70,69 @@ onMounted(async () => {
     console.error("Error fetching data:", error);
   }
 });
-
-
 </script>
+
+<script>
+import { authStore } from "@/store/auth";
+export default {
+  data(){
+    return {
+      selectedFilters: {
+        roles: [],
+        tools: [],
+        languages: [],
+        levels: [],
+      },
+    };
+  },
+  computed: {
+    isFilterActive() {
+      return this.selectedFilters.roles.length > 0 || this.selectedFilters.tools.length > 0 || this.selectedFilters.languages.length > 0 || this.selectedFilters.levels.length > 0;
+    },
+    isAnyFilterSelected() {
+      return this.selectedFilters.roles.length > 0 || this.selectedFilters.tools.length > 0 || this.selectedFilters.languages.length > 0 || this.selectedFilters.levels.length > 0;
+    },
+    filteredJobs() {
+      return this.jobsOnly.filter(job => {
+        // Check if job matches selected filters
+        const matchesRoles = this.selectedFilters.roles.length === 0 || this.selectedFilters.roles.some(role => job.roles.includes(role));
+        const matchesTools = this.selectedFilters.tools.length === 0 || this.selectedFilters.tools.some(tool => job.tools.includes(tool));
+        const matchesLanguages = this.selectedFilters.languages.length === 0 || this.selectedFilters.languages.some(language => job.languages.includes(language));
+        const matchesLevels = this.selectedFilters.levels.length === 0 || this.selectedFilters.levels.includes(job.level);
+
+        return matchesRoles && matchesTools && matchesLanguages && matchesLevels;
+      });
+    },
+  },
+  methods: {
+    // filteredJobs() {
+    //   return this.jobsOnly.filter(job => {
+    //     // Check if job matches selected filters
+    //     const matchesRoles = this.selectedFilters.roles.length === 0 || this.selectedFilters.roles.some(role => job.roles.includes(role));
+    //     const matchesTools = this.selectedFilters.tools.length === 0 || this.selectedFilters.tools.some(tool => job.tools.includes(tool));
+    //     const matchesLanguages = this.selectedFilters.languages.length === 0 || this.selectedFilters.languages.some(language => job.languages.includes(language));
+    //     const matchesLevels = this.selectedFilters.levels.length === 0 || this.selectedFilters.levels.includes(job.level);
+
+    //     return matchesRoles && matchesTools && matchesLanguages && matchesLevels;
+    //   });
+    // },
+    // Method to toggle filter selection
+    toggleFilter(filterType, filterValue) {
+      const index = this.selectedFilters[filterType].indexOf(filterValue);
+      if (index === -1) {
+        this.selectedFilters[filterType].push(filterValue);
+      } else {
+        this.selectedFilters[filterType].splice(index, 1);
+      }
+    },
+    handleLogout (){
+      authStore().logout();
+      this.$router.push({ name: 'Login' });
+    }
+  }
+}
+</script>
+
 
 <style>
 .tag,

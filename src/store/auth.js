@@ -26,6 +26,7 @@ export const authStore = defineStore({
 
         if (response.ok) {
           this.isAuthenticated = true;
+          
           // Handle successful login (e.g., store token, redirect, etc.)
         } else {
           // Handle failed login (e.g., show error message)
